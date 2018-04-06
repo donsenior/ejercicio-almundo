@@ -4,6 +4,9 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ar.com.almundo.ejercicio.entities.Director;
 import ar.com.almundo.ejercicio.entities.Empleado;
 import ar.com.almundo.ejercicio.entities.Operador;
@@ -13,6 +16,8 @@ import ar.com.almundo.ejercicio.valueobjects.CallStatus;
 import ar.com.almundo.ejercicio.valueobjects.Empleados;
 
 public class CallCenter {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(CallCenter.class);
 
 	private Empleados<Operador> operators = new Empleados<>();
 	private Empleados<Supervisor> supervisors = new Empleados<>();
@@ -30,6 +35,15 @@ public class CallCenter {
 		
 		if (optionalEmpleado.isPresent()) {
 			callData.setAttendant(optionalEmpleado);
+			int callDuration = ThreadLocalRandom.current().nextInt(5000, 10001);
+			LOGGER.debug("Llamada atendida por {} con legajo {}", optionalEmpleado.get().getRol(), optionalEmpleado.get().getLegajo());
+			try {
+				Thread.sleep(callDuration);
+			} catch (InterruptedException e) {
+				LOGGER.error("", e);
+				Thread.currentThread().interrupt();
+			}
+			LOGGER.debug("Llamada atendida por {} con legajo {} finalizada. Duración: {}", optionalEmpleado.get().getRol(), optionalEmpleado.get().getLegajo(), callDuration);
 			callData.setCallStatus(CallStatus.SUCCESS);
 		} else {
 			callData.setCallStatus(CallStatus.BUSY);

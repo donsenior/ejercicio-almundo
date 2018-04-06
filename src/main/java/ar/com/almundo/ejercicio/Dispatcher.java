@@ -21,25 +21,25 @@ public class Dispatcher {
 
 		synchronized (this) {
 			checkInCall();
-			if (!isDispatcherAvailable()) {
+			if (!isAvailable()) {
 				callData.setCallStatus(CallStatus.DISPATCHER_NOT_AVAILABLE);
 			}
 		}
 
 		if (CallStatus.DISPATCH.equals(callData.getCallStatus())) {
-			doDispatch(callData);
+			callCenter.dispatch(callData);
 		}
 
 		checkOutCall();
 
 		return callData;
 	}
-
-	private CallData doDispatch(CallData callData) {
-		return callCenter.dispatch(callData);
+	
+	public boolean isIdle() {
+		return currentCallsCount == 0;
 	}
 
-	private boolean isDispatcherAvailable() {
+	private boolean isAvailable() {
 		return currentCallsCount <= MAX_CONCURRENT_CALLS;
 	}
 
