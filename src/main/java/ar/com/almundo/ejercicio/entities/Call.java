@@ -1,4 +1,4 @@
-package ar.com.almundo.callcenter.entities;
+package ar.com.almundo.ejercicio.entities;
 
 public class Call {
 
