@@ -1,10 +1,15 @@
 package ar.com.almundo.ejercicio;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import ar.com.almundo.ejercicio.entities.Call;
 import ar.com.almundo.ejercicio.valueobjects.CallData;
 import ar.com.almundo.ejercicio.valueobjects.CallStatus;
 
 public class Dispatcher {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(Dispatcher.class);
 
 	private static final int MAX_CONCURRENT_CALLS = 10;
 
@@ -20,7 +25,7 @@ public class Dispatcher {
 		CallData callData = new CallData(call, CallStatus.DISPATCH);
 
 		synchronized (this) {
-			checkInCall();
+			checkInCall(callData);
 			if (!isAvailable()) {
 				callData.setCallStatus(CallStatus.DISPATCHER_NOT_AVAILABLE);
 			}
@@ -30,12 +35,12 @@ public class Dispatcher {
 			callCenter.dispatch(callData);
 		}
 
-		checkOutCall();
+		checkOutCall(callData);
 
 		return callData;
 	}
-	
-	public boolean isIdle() {
+
+	public synchronized boolean isIdle() {
 		return currentCallsCount == 0;
 	}
 
@@ -43,12 +48,15 @@ public class Dispatcher {
 		return currentCallsCount <= MAX_CONCURRENT_CALLS;
 	}
 
-	private void checkInCall() {
+	private void checkInCall(CallData callData) {
 		currentCallsCount++;
+		LOGGER.info("Checking in call {}. Current calls count {}.", callData.getCall().getId(), currentCallsCount);
 	}
 
-	private synchronized void checkOutCall() {
+	private synchronized void checkOutCall(CallData callData) {
 		currentCallsCount--;
+		LOGGER.info("Checking out call {}. Status {}. Current calls count {}.", callData.getCall().getId(),
+				callData.getCallStatus(), currentCallsCount);
 	}
 
 }

@@ -36,14 +36,14 @@ public class CallCenter {
 		if (optionalEmpleado.isPresent()) {
 			callData.setAttendant(optionalEmpleado);
 			int callDuration = ThreadLocalRandom.current().nextInt(5000, 10001);
-			LOGGER.debug("Llamada atendida por {} con legajo {}", optionalEmpleado.get().getRol(), optionalEmpleado.get().getLegajo());
+			LOGGER.debug("Llamada {} atendida por {} con legajo {}", callData.getCall().getId(), optionalEmpleado.get().getRol(), optionalEmpleado.get().getLegajo());
 			try {
 				Thread.sleep(callDuration);
 			} catch (InterruptedException e) {
 				LOGGER.error("", e);
 				Thread.currentThread().interrupt();
 			}
-			LOGGER.debug("Llamada atendida por {} con legajo {} finalizada. Duración: {}", optionalEmpleado.get().getRol(), optionalEmpleado.get().getLegajo(), callDuration);
+			LOGGER.debug("Llamada {} finalizada. Duración: {}", callData.getCall().getId(), callDuration);
 			callData.setCallStatus(CallStatus.SUCCESS);
 		} else {
 			callData.setCallStatus(CallStatus.BUSY);
