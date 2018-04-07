@@ -43,7 +43,7 @@ public class CallCenter {
 				LOGGER.error("", e);
 				Thread.currentThread().interrupt();
 			}
-			LOGGER.debug("Llamada {} finalizada. Duración: {}", callData.getCall().getId(), callDuration);
+			LOGGER.debug("Llamada {} finalizada. Duración: {} milisegundos.", callData.getCall().getId(), callDuration);
 			callData.setCallStatus(CallStatus.SUCCESS);
 		} else {
 			callData.setCallStatus(CallStatus.BUSY);
