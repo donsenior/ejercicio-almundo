@@ -119,7 +119,6 @@ public class DispatcherTest {
 		};
 
 		testDispatcher(callCenter, 10, assertions);
-		Thread.sleep(10001);
 		// La segunda tanda debe ser atendida correctamente
 		testDispatcher(callCenter, 10, assertions);
 	}
