@@ -19,15 +19,15 @@ public class CallCenter {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(CallCenter.class);
 
-	private Empleados<Operador> operators = new Empleados<>();
-	private Empleados<Supervisor> supervisors = new Empleados<>();
-	private Empleados<Director> directors = new Empleados<>();
+	private final Empleados<Operador> operators;
+	private final Empleados<Supervisor> supervisors;
+	private final Empleados<Director> directors;
 
 	public CallCenter(Collection<Operador> operators, Collection<Supervisor> supervisors,
 			Collection<Director> directors) {
-		this.operators.getAvailables().addAll(operators);
-		this.supervisors.getAvailables().addAll(supervisors);
-		this.directors.getAvailables().addAll(directors);
+		this.operators = new Empleados<>(operators);
+		this.supervisors = new Empleados<>(supervisors);
+		this.directors = new Empleados<>(directors);
 	}
 
 	public CallData dispatch(CallData callData) {
@@ -74,7 +74,7 @@ public class CallCenter {
 	}
 
 	private Optional<Empleado> getRandomEmpleado(Empleados<? extends Empleado> empleados) {
-		int randomNum = ThreadLocalRandom.current().nextInt(0, empleados.getAvailables().size());
+		int randomNum = ThreadLocalRandom.current().nextInt(0, empleados.size());
 
 		Empleado empleado = empleados.answer(randomNum);
 
@@ -82,15 +82,15 @@ public class CallCenter {
 	}
 
 	private Optional<Empleados<? extends Empleado>> getAvailableEmpleados() {
-		if (!operators.getAvailables().isEmpty()) {
+		if (!operators.isEmpty()) {
 			return Optional.of(operators);
 		}
 
-		if (!supervisors.getAvailables().isEmpty()) {
+		if (!supervisors.isEmpty()) {
 			return Optional.of(supervisors);
 		}
 
-		if (!directors.getAvailables().isEmpty()) {
+		if (!directors.isEmpty()) {
 			return Optional.of(directors);
 		}
 
