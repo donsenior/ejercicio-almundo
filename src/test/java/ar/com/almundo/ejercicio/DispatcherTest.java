@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -40,146 +41,170 @@ public class DispatcherTest {
 		LOGGER.info("---------- Fin del test -------------");
 	}
 
-	@Test
-	public void testDispatch10Calls9Employees() throws InterruptedException {
-		// dado un call center con 9 empleados que recibe 10 llamadas concurrentes
-		Dispatcher dispatcher = new Dispatcher(buildCallCenterWithNineEmployees());
+	private void testDispatcher(CallCenter callCenter, int concurrentCallsCount, Consumer<List<CallData>> assertions)
+			throws InterruptedException {
+		// dado un call center
+		Dispatcher dispatcher = new Dispatcher(callCenter);
 
-		ExecutorService service = Executors.newFixedThreadPool(10); // 10 llamadas concurrentes.
+		ExecutorService service = Executors.newFixedThreadPool(concurrentCallsCount); // llamadas concurrentes.
 
 		List<CallData> callResults = new ArrayList<>();
 
 		// cuando
-		IntStream.range(1, 11)
+		IntStream.range(1, concurrentCallsCount + 1)
 				.forEach(count -> service.submit(() -> callResults.add(dispatcher.dispatchCall(new Call(count)))));
 
 		service.shutdown();
 		service.awaitTermination(10001, TimeUnit.MILLISECONDS);
 
 		// entonces
-		List<CallData> successCalls = filterByStatus(callResults, CallStatus.SUCCESS);
-		List<CallData> busyCalls = filterByStatus(callResults, CallStatus.BUSY);
-		List<CallData> notTakenCalls = filterByStatus(callResults, CallStatus.DISPATCHER_NOT_AVAILABLE);
-
 		assertTrue("El dispatcher deberia estar idle", dispatcher.isIdle());
-		// Se recibieron 10 llamados
-		assertEquals(10, callResults.size());
 
-		// Nueve fueron exitosas ya que hay 9 empleados
-		assertEquals(9, successCalls.size());
+		assertions.accept(callResults);
+	}
 
-		// Una llamada debe dar ocupado ya que falta un empleado para poder atender a
-		// todas las llamadas que el dispatcher maneja.
-		assertEquals(1, busyCalls.size());
+	@Test
+	public void testDispatch10Calls9Employees() throws InterruptedException {
+		// dado un call center con 9 empleados que recibe 10 llamadas concurrentes
+		CallCenter callCenter = buildCallCenterWithNineEmployees();
+		// entonces
+		Consumer<List<CallData>> assertions = callResults -> {
 
-		// Todas las llamadas fueron despachadas correctamente ya que el dispatcher
-		// soporta 10 llamadas concurrentes
-		assertEquals(0, notTakenCalls.size());
+			List<CallData> successCalls = filterByStatus(callResults, CallStatus.SUCCESS);
+			List<CallData> busyCalls = filterByStatus(callResults, CallStatus.BUSY);
+			List<CallData> notTakenCalls = filterByStatus(callResults, CallStatus.DISPATCHER_NOT_AVAILABLE);
+
+			// Se recibieron 10 llamados
+			assertEquals(10, callResults.size());
+
+			// Nueve fueron exitosas ya que hay 9 empleados
+			assertEquals(9, successCalls.size());
+
+			// Una llamada debe dar ocupado ya que falta un empleado para poder atender a
+			// todas las llamadas que el dispatcher maneja.
+			assertEquals(1, busyCalls.size());
+
+			// Todas las llamadas fueron despachadas correctamente ya que el dispatcher
+			// soporta 10 llamadas concurrentes
+			assertEquals(0, notTakenCalls.size());
+		};
+
+		testDispatcher(callCenter, 10, assertions);
+	}
+
+	@Test
+	public void testDispatch10Calls9EmployeesDoubleTurn() throws InterruptedException {
+		// dado un call center con 9 empleados que recibe 10 llamadas concurrentes
+		CallCenter callCenter = buildCallCenterWithNineEmployees();
+		// entonces
+		Consumer<List<CallData>> assertions = callResults -> {
+
+			List<CallData> successCalls = filterByStatus(callResults, CallStatus.SUCCESS);
+			List<CallData> busyCalls = filterByStatus(callResults, CallStatus.BUSY);
+			List<CallData> notTakenCalls = filterByStatus(callResults, CallStatus.DISPATCHER_NOT_AVAILABLE);
+
+			// Se recibieron 10 llamados
+			assertEquals(10, callResults.size());
+
+			// Nueve fueron exitosas ya que hay 9 empleados
+			assertEquals(9, successCalls.size());
+
+			// Una llamada debe dar ocupado ya que falta un empleado para poder atender a
+			// todas las llamadas que el dispatcher maneja.
+			assertEquals(1, busyCalls.size());
+
+			// Todas las llamadas fueron despachadas correctamente ya que el dispatcher
+			// soporta 10 llamadas concurrentes
+			assertEquals(0, notTakenCalls.size());
+		};
+
+		testDispatcher(callCenter, 10, assertions);
+		Thread.sleep(10001);
+		// La segunda tanda debe ser atendida correctamente
+		testDispatcher(callCenter, 10, assertions);
 	}
 
 	@Test
 	public void testDispatch11Calls11Employees() throws InterruptedException {
 		// dado un call center con 11 empleados que recibe 11 llamados concurrentes (más
 		// de los que el dispatcher puede manejar)
-		Dispatcher dispatcher = new Dispatcher(buildCallCenterWithElevenEmployees());
-
-		ExecutorService service = Executors.newFixedThreadPool(11); // 11 llamadas concurrentes.
-
-		List<CallData> callResults = new ArrayList<>();
-
-		// cuando
-		IntStream.range(1, 12)
-				.forEach(count -> service.submit(() -> callResults.add(dispatcher.dispatchCall(new Call(count)))));
-
-		service.shutdown();
-		service.awaitTermination(10001, TimeUnit.MILLISECONDS);
+		CallCenter callCenter = buildCallCenterWithElevenEmployees();
 
 		// entonces
-		List<CallData> successCalls = filterByStatus(callResults, CallStatus.SUCCESS);
-		List<CallData> busyCalls = filterByStatus(callResults, CallStatus.BUSY);
-		List<CallData> notTakenCalls = filterByStatus(callResults, CallStatus.DISPATCHER_NOT_AVAILABLE);
+		Consumer<List<CallData>> assertions = callResults -> {
+			List<CallData> successCalls = filterByStatus(callResults, CallStatus.SUCCESS);
+			List<CallData> busyCalls = filterByStatus(callResults, CallStatus.BUSY);
+			List<CallData> notTakenCalls = filterByStatus(callResults, CallStatus.DISPATCHER_NOT_AVAILABLE);
 
-		assertTrue("El dispatcher deberia estar idle", dispatcher.isIdle());
-		// Se recibieron 11 llamados
-		assertEquals(11, callResults.size());
-		
-		// Hubo 10 llamadas exitosas ya que hay más empleados que los que el dispatcher
-		// puede manejar
-		assertEquals(10, successCalls.size());
-		
-		// Ninguna llamada dio ocupado, por el mismo motivo de antes, sobran
-		// empleados...
-		assertEquals(0, busyCalls.size());
-		
-		// Una llamada no pudo ser despachada ya que solo se reciben hasta 10
-		assertEquals(1, notTakenCalls.size());
+			// Se recibieron 11 llamados
+			assertEquals(11, callResults.size());
+
+			// Hubo 10 llamadas exitosas ya que hay más empleados que los que el dispatcher
+			// puede manejar
+			assertEquals(10, successCalls.size());
+
+			// Ninguna llamada dio ocupado, por el mismo motivo de antes, sobran
+			// empleados...
+			assertEquals(0, busyCalls.size());
+
+			// Una llamada no pudo ser despachada ya que solo se reciben hasta 10
+			assertEquals(1, notTakenCalls.size());
+		};
+
+		testDispatcher(callCenter, 11, assertions);
+
 	}
 
 	@Test
 	public void testDispatchCallToOperatorsAndOneSupervisor() throws InterruptedException {
-		// dado
-		Dispatcher dispatcher = new Dispatcher(buildCallCenterWithNineEmployees());
-
-		ExecutorService service = Executors.newFixedThreadPool(5);
-
-		List<CallData> callResults = new ArrayList<>();
-
-		// cuando hay solo 5 llamadas
-		IntStream.range(1, 6)
-				.forEach(count -> service.submit(() -> callResults.add(dispatcher.dispatchCall(new Call(count)))));
-
-		service.shutdown();
-		service.awaitTermination(10001, TimeUnit.MILLISECONDS);
+		// dado un call center con 4 operadores, 3 supervisores y 2 directores que
+		// recibe 5 llamadas concurrentes
+		CallCenter callCenter = buildCallCenterWithNineEmployees();
 
 		// entonces
-		List<CallData> operatorsCalls = filterByRol(callResults, Rol.OPERADOR);
-		List<CallData> supervisorsCalls = filterByRol(callResults, Rol.SUPERVISOR);
-		List<CallData> directorCalls = filterByRol(callResults, Rol.DIRECTOR);
+		Consumer<List<CallData>> assertions = callResults -> {
+			List<CallData> operatorsCalls = filterByRol(callResults, Rol.OPERADOR);
+			List<CallData> supervisorsCalls = filterByRol(callResults, Rol.SUPERVISOR);
+			List<CallData> directorCalls = filterByRol(callResults, Rol.DIRECTOR);
 
-		assertTrue("El dispatcher deberia estar idle", dispatcher.isIdle());
+			// Se recibieron 5 llamados
+			assertEquals(5, callResults.size());
 
-		// Se recibieron 5 llamados
-		assertEquals(5, callResults.size());
-		
-		// cuatro fueron atendidas por operadores...
-		assertEquals(4, operatorsCalls.size());
-		
-		// una fue atendida por un supervisor
-		assertEquals(1, supervisorsCalls.size());
-		
-		// ningún director tuvo que atender llamadas.
-		assertEquals(0, directorCalls.size());
+			// cuatro fueron atendidas por operadores...
+			assertEquals(4, operatorsCalls.size());
+
+			// una fue atendida por un supervisor
+			assertEquals(1, supervisorsCalls.size());
+
+			// ningún director tuvo que atender llamadas.
+			assertEquals(0, directorCalls.size());
+		};
+
+		testDispatcher(callCenter, 5, assertions);
 	}
 
 	@Test
 	public void testDispatchCallToOperatorsOnly() throws InterruptedException {
-		// dado
-		Dispatcher dispatcher = new Dispatcher(buildCallCenterWithNineEmployees());
-
-		ExecutorService service = Executors.newFixedThreadPool(4);
-
-		List<CallData> callResults = new ArrayList<>();
-
-		// cuando hay solo 4 llamadas
-		IntStream.range(1, 5)
-				.forEach(count -> service.submit(() -> callResults.add(dispatcher.dispatchCall(new Call(count)))));
-
-		service.shutdown();
-		service.awaitTermination(10001, TimeUnit.MILLISECONDS);
+		// dado un call center con 4 operadores, 3 supervisores y 2 directores que
+		// recibe 4 llamadas concurrentes
+		CallCenter callCenter = buildCallCenterWithNineEmployees();
 
 		// entonces
-		List<CallData> operatorsCalls = filterByRol(callResults, Rol.OPERADOR);
-		List<CallData> supervisorsCalls = filterByRol(callResults, Rol.SUPERVISOR);
-		List<CallData> directorCalls = filterByRol(callResults, Rol.DIRECTOR);
+		Consumer<List<CallData>> assertions = callResults -> {
+			List<CallData> operatorsCalls = filterByRol(callResults, Rol.OPERADOR);
+			List<CallData> supervisorsCalls = filterByRol(callResults, Rol.SUPERVISOR);
+			List<CallData> directorCalls = filterByRol(callResults, Rol.DIRECTOR);
 
-		assertTrue("El dispatcher deberia estar idle", dispatcher.isIdle());
-		// Se recibieron 4 llamados
-		assertEquals(4, callResults.size());
-		
-		// solo los operadores atendieron.
-		assertEquals(4, operatorsCalls.size());
-		assertEquals(0, supervisorsCalls.size());
-		assertEquals(0, directorCalls.size());
+			// Se recibieron 4 llamados
+			assertEquals(4, callResults.size());
+
+			// solo los operadores atendieron.
+			assertEquals(4, operatorsCalls.size());
+			assertEquals(0, supervisorsCalls.size());
+			assertEquals(0, directorCalls.size());
+		};
+
+		testDispatcher(callCenter, 4, assertions);
 
 	}
 

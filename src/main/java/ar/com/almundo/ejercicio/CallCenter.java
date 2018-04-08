@@ -16,7 +16,7 @@ import ar.com.almundo.ejercicio.valueobjects.CallStatus;
 import ar.com.almundo.ejercicio.valueobjects.Empleados;
 
 public class CallCenter {
-	
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(CallCenter.class);
 
 	private Empleados<Operador> operators = new Empleados<>();
@@ -31,20 +31,19 @@ public class CallCenter {
 	}
 
 	public CallData dispatch(CallData callData) {
-		Optional<Empleado> optionalEmpleado = getAttendant();
-		
+		Optional<Empleados<? extends Empleado>> empleados;
+		Optional<Empleado> optionalEmpleado;
+
+		synchronized (this) {
+			empleados = getAvailableEmpleados();
+			optionalEmpleado = getAttendant(empleados);
+		}
+
 		if (optionalEmpleado.isPresent()) {
 			callData.setAttendant(optionalEmpleado);
-			int callDuration = ThreadLocalRandom.current().nextInt(5000, 10001);
-			LOGGER.debug("Llamada {} atendida por {} con legajo {}", callData.getCall().getId(), optionalEmpleado.get().getRol(), optionalEmpleado.get().getLegajo());
-			try {
-				Thread.sleep(callDuration);
-			} catch (InterruptedException e) {
-				LOGGER.error("", e);
-				Thread.currentThread().interrupt();
-			}
-			LOGGER.debug("Llamada {} finalizada. Duración: {} milisegundos.", callData.getCall().getId(), callDuration);
+			emulateCall(callData, optionalEmpleado.get());
 			callData.setCallStatus(CallStatus.SUCCESS);
+			empleados.get().hang(optionalEmpleado.get());
 		} else {
 			callData.setCallStatus(CallStatus.BUSY);
 		}
@@ -52,8 +51,20 @@ public class CallCenter {
 		return callData;
 	}
 
-	private synchronized Optional<Empleado> getAttendant() {
-		Optional<Empleados<? extends Empleado>> empleados = getAvailableEmpleados();
+	private void emulateCall(CallData callData, Empleado empleado) {
+		int callDuration = ThreadLocalRandom.current().nextInt(5000, 10001);
+		LOGGER.debug("Llamada {} atendida por {} con legajo {}", callData.getCall().getId(), empleado.getRol(),
+				empleado.getLegajo());
+		try {
+			Thread.sleep(callDuration);
+		} catch (InterruptedException e) {
+			LOGGER.error("", e);
+			Thread.currentThread().interrupt();
+		}
+		LOGGER.debug("Llamada {} finalizada. Duración: {} milisegundos.", callData.getCall().getId(), callDuration);
+	}
+
+	private Optional<Empleado> getAttendant(Optional<Empleados<? extends Empleado>> empleados) {
 
 		if (empleados.isPresent()) {
 			return getRandomEmpleado(empleados.get());
@@ -64,9 +75,9 @@ public class CallCenter {
 
 	private Optional<Empleado> getRandomEmpleado(Empleados<? extends Empleado> empleados) {
 		int randomNum = ThreadLocalRandom.current().nextInt(0, empleados.getAvailables().size());
-		
+
 		Empleado empleado = empleados.answer(randomNum);
-		
+
 		return Optional.of(empleado);
 	}
 

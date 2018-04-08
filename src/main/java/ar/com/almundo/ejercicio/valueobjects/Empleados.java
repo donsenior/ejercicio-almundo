@@ -17,11 +17,17 @@ public class Empleados<T extends Empleado> {
 	public List<T> getUnavailables() {
 		return unavailables;
 	}
-	
+
 	public Empleado answer(int index) {
 		T empleado = availables.remove(index);
 		unavailables.add(empleado);
 		return empleado;
+	}
+
+	public void hang(Empleado empleado) {
+		int index = unavailables.indexOf(empleado);
+		T available = unavailables.remove(index);
+		availables.add(available);
 	}
 
 }
